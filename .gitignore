@@ -1,0 +1,21 @@
+# .gitignore
+__pycache__/
+venv/
+*.pyc
+*.pyo
+*.pyd
+*.pyz
+*.pyw
+*.pyc
+*.pyo
+*.pyd
+*.pyz
+*.pyw
+*.py~
+
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# vscode
+.vscode/
