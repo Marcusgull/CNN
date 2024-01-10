@@ -1,6 +1,8 @@
 import tensorflow as tf
-from keras import datasets, layers, models
+from keras import datasets, layers, models, optimizers
+from keras.preprocessing.image import ImageDataGenerator
 import matplotlib.pyplot as plt
+
 
 #Last in CIFAR-10 datasettet, dette er nesten likt som MNIST
 # men inneholder farger og 10 ulike klasser
@@ -16,6 +18,17 @@ plt.show()
 
 #Pre-prosesser data
 train_images, test_images = train_images / 255.0, test_images /255.0
+
+#Endrer på bildene (data-augmentation)
+datagen = ImageDataGenerator(
+    rotation_range=20,
+    width_shift_range=0.2,
+    height_shift_range=0.2,
+    horizontal_flip=True,
+    brightness_range=[0.8, 1.2],
+    zoom_range=0.2,
+)
+
 
 #CNN modellen
 #Legger til flere og flere filtre i hver Conv2D layer for å plukke opp mer -
@@ -43,10 +56,47 @@ model.compile(optimizer='adam',
                loss='sparse_categorical_crossentropy',
                metrics=['accuracy'])
 
+
 #Tren modellen
 #Ikke bland train og test data sammen, da blir outputten meningsløs
 history = model.fit(train_images, train_labels, epochs=10,
                     validation_data=(test_images, test_labels))
+
+#Gridden som man søker gjennom kombinasjoner med hyperparametere
+learning_rates = [0.001, 0.01, 0.1]
+batch_sizes = [32, 64, 128]
+epochs_search = [10, 20, 30]
+
+#Grid-search av hyper-parametere
+for lr in learning_rates:
+    for batch_size_search in batch_sizes:
+        for epoch in epochs_search:
+            #bygg modellen og tren med hver enkelt kombinasjon
+            model = models.Sequential()
+            model.add(layers.Conv2D(32, (3, 3), activation='relu', input_shape=(32, 32, 3)))
+            model.add(layers.MaxPooling2D((2, 2)))
+            model.add(layers.Conv2D(64, (3, 3), activation='relu'))
+            model.add(layers.MaxPooling2D((2, 2)))
+            model.add(layers.Conv2D(64, (3, 3), activation='relu'))
+            model.add(layers.Flatten())
+            model.add(layers.Dense(64, activation='relu'))
+            model.add(layers.Dense(10, activation='softmax'))
+
+            model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=lr),
+                          loss='sparse_categorical_crossentropy',
+                          metrics=['accuracy'])
+            
+            history = model.fit(datagen.flow(train_images, train_labels, batch_size=batch_size_search),
+                                epochs=epochs_search,
+                                validation_data=(test_images, test_labels))
+
+            #evaluer modellen
+            test_loss, test_accuracy = model.evaluate(test_images, test_labels, verbose=2)
+            
+            #print og lagre resultater
+            print(f'Learning Rate: {lr}, Batch Size: {batch_sizes}, Epochs: {epoch}, Test Accuracy: {test_accuracy}')
+
+
 
 #Evaluer
 test_loss, test_acc = model.evaluate(test_images, test_labels)
